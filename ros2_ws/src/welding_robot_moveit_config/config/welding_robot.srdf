@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="welding_robot">
+  <group name="welding_arm">
+    <chain base_link="base_link" tip_link="tcp"/>
+  </group>
+  <group_state name="home" group="welding_arm">
+    <joint name="joint_1" value="0"/>
+    <joint name="joint_2" value="-0.5"/>
+    <joint name="joint_3" value="1.0"/>
+    <joint name="joint_4" value="0"/>
+    <joint name="joint_5" value="0.5"/>
+    <joint name="joint_6" value="0"/>
+  </group_state>
+  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+  <end_effector name="welding_tcp" parent_link="tcp" group="welding_arm"/>
+</robot>
