@@ -18,7 +18,6 @@
   <exec_depend>moveit_simple_controller_manager</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros2_control</exec_depend>
-  <exec_depend>ros2_controllers</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>welding_robot_description</exec_depend>
