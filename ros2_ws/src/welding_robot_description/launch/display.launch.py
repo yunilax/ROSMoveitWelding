@@ -6,7 +6,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     pkg = FindPackageShare("welding_robot_description")
-    urdf_path = PathJoinSubstitution([pkg, "urdf", "welding_robot.urdf.xacro"])
+    urdf_path = PathJoinSubstitution([pkg, "urdf", "welding_robot_visual.urdf.xacro"])
     robot_description = Command([FindExecutable(name="xacro"), " ", urdf_path])
 
     return LaunchDescription(

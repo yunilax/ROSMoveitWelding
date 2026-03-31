@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
-<!-- MoveIt / ros2_control mock: same kinematics + mock hardware. -->
+<!-- RViz + joint_state_publisher_gui only (no ros2_control). -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="welding_robot">
   <xacro:include filename="welding_robot_macro.xacro"/>
-  <xacro:include filename="welding_robot_mock_ros2_control.xacro"/>
   <xacro:welding_robot_body/>
-  <xacro:welding_robot_mock_ros2_control/>
 </robot>
