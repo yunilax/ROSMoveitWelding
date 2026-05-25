@@ -76,13 +76,13 @@ export class RosBridgeClient {
 
     this.statusTopic = new ROSLIB.Topic({
       ros: this.ros,
-      name: '/welding_demo/status_in',
+      name: '/welding/status_in',
       messageType: 'std_msgs/String',
     });
 
     this.trajectoryTopic = new ROSLIB.Topic({
       ros: this.ros,
-      name: '/welding_demo/trajectory',
+      name: '/welding/trajectory',
       messageType: 'std_msgs/String',
     });
   }

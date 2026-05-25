@@ -18,9 +18,9 @@ export class ModelLoader {
 
   constructor(private sceneManager: SceneManager) {}
 
-  loadDemoWorkpiece(): THREE.Group {
+  loadSampleWorkpiece(): THREE.Group {
     const group = new THREE.Group();
-    group.name = 'demo-workpiece';
+    group.name = 'sample-workpiece';
 
     const base = new THREE.Mesh(
       new THREE.BoxGeometry(1.6, 0.08, 0.9),
@@ -81,7 +81,7 @@ export class ModelLoader {
           return this.loadGltf(url);
         case 'step':
         case 'stp':
-          throw new Error('STEP требует backend API. Запустите welding_demo_backend на :8000');
+          throw new Error('STEP требует backend API. Запустите welding_backend на :8000');
         default:
           throw new Error(`Формат .${ext} не поддерживается. Используйте STL, OBJ, GLTF/GLB или STEP (с backend).`);
       }

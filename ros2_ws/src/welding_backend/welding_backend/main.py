@@ -7,11 +7,11 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from welding_demo_backend.icp import run_icp
-from welding_demo_backend.moveit_export import build_moveit_plan
-from welding_demo_backend.step_convert import convert_step_to_stl_bytes, sample_mesh_points
+from welding_backend.icp import run_icp
+from welding_backend.moveit_export import build_moveit_plan
+from welding_backend.step_convert import convert_step_to_stl_bytes, sample_mesh_points
 
-app = FastAPI(title="Welding Demo Backend", version="0.2.0")
+app = FastAPI(title="Welding Backend", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +37,7 @@ class MoveItExportRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "welding_demo_backend"}
+    return {"status": "ok", "service": "welding_backend"}
 
 
 @app.post("/api/convert/step")

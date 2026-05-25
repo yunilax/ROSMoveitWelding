@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from welding_demo_backend.main import app
+from welding_backend.main import app
 import uvicorn
 
 if __name__ == "__main__":

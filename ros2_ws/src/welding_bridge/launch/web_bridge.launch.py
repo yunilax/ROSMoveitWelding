@@ -17,12 +17,12 @@ def generate_launch_description():
             output="screen",
         ),
         Node(
-            package="welding_demo_bridge",
+            package="welding_bridge",
             executable="weld_status_node",
             output="screen",
         ),
         Node(
-            package="welding_demo_bridge",
+            package="welding_bridge",
             executable="trajectory_bridge_node",
             output="screen",
         ),

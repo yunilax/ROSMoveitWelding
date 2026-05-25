@@ -20,7 +20,7 @@ const STEPS: { id: WorkflowStep; label: string }[] = [
 ];
 
 export interface SidebarCallbacks {
-  onLoadDemo: () => void;
+  onLoadSample: () => void;
   onLoadFile: (file: File) => void;
   onDetectSeams: () => void;
   onSelectAllSeams: (selected: boolean) => void;
@@ -84,7 +84,7 @@ export class Sidebar {
     this.root.innerHTML = `
       <div class="panel active" data-panel="model">
         <h2>CAD-модель</h2>
-        <p class="subtitle">Загрузите STL, OBJ, GLTF/GLB, STEP (через backend) или используйте демо-деталь.</p>
+        <p class="subtitle">Загрузите STL, OBJ, GLTF/GLB, STEP (через backend) или используйте образец детали.</p>
         <div class="section">
           <h3>Загрузка</h3>
           <label class="file-label" for="cad-file">
@@ -92,7 +92,7 @@ export class Sidebar {
             <small>STL · OBJ · GLTF · GLB · STEP</small>
           </label>
           <input class="file-input" id="cad-file" type="file" accept=".stl,.obj,.gltf,.glb,.step,.stp" />
-          <button class="btn primary" id="load-demo" style="margin-top:0.5rem">Загрузить демо-деталь</button>
+          <button class="btn primary" id="load-sample" style="margin-top:0.5rem">Загрузить образец детали</button>
         </div>
         <div class="section">
           <h3>Backend API</h3>
@@ -241,7 +241,7 @@ export class Sidebar {
       if (file) this.callbacks.onLoadFile(file);
     });
 
-    this.root.querySelector('#load-demo')!.addEventListener('click', () => this.callbacks.onLoadDemo());
+    this.root.querySelector('#load-sample')!.addEventListener('click', () => this.callbacks.onLoadSample());
     this.root.querySelector('#detect-seams')!.addEventListener('click', () => this.callbacks.onDetectSeams());
     this.root.querySelector('#select-all-seams')!.addEventListener('click', () => {
       this.callbacks.onSelectAllSeams(true);
@@ -311,7 +311,7 @@ export class Sidebar {
     backendInfo.className = state.backendOnline ? 'info-box success' : 'info-box';
     backendInfo.textContent = state.backendOnline
       ? 'Backend online — STEP, ICP (Open3D), MoveIt export'
-      : 'Backend offline — запустите welding_demo_backend на :8000';
+      : 'Backend offline — запустите welding_backend на :8000';
   }
 
   private updateSeamsPanel(seamManager: SeamManager): void {
@@ -408,6 +408,6 @@ export class Sidebar {
     info.className = state.rosConnected ? 'info-box success' : 'info-box';
     info.innerHTML = state.rosConnected
       ? `Подключено: ${ros.state.url}<br/>Joint states: ${ros.state.lastJointUpdate}`
-      : 'Не подключено. Запустите: ros2 launch welding_demo_bridge web_bridge.launch.py';
+      : 'Не подключено. Запустите: ros2 launch welding_bridge web_bridge.launch.py';
   }
 }

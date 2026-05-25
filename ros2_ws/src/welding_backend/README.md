@@ -1,6 +1,6 @@
-# Welding Demo Backend
+# Welding Backend
 
-FastAPI-сервис для расширения браузерного демо:
+FastAPI-сервис для браузерного приложения сварки:
 
 - **STEP → STL** — конвертация CAD (`POST /api/convert/step`)
 - **ICP** — сопоставление облака точек с CAD (`POST /api/align/icp`)
@@ -9,7 +9,7 @@ FastAPI-сервис для расширения браузерного демо
 ## Установка
 
 ```bash
-cd ros2_ws/src/welding_demo_backend
+cd ros2_ws/src/welding_backend
 python -m venv .venv
 .venv\Scripts\activate   # Windows
 pip install -r requirements.txt

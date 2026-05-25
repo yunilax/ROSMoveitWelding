@@ -9,7 +9,7 @@ import { BackendClient } from './BackendClient';
 import { RosBridgeClient } from './RosBridgeClient';
 import { downloadJson } from './MoveItExporter';
 
-export class WeldingDemoApp {
+export class WeldingApp {
   private state: AppState = {
     step: 'model',
     modelLoaded: false,
@@ -55,7 +55,7 @@ export class WeldingDemoApp {
       document.getElementById('sidebar')!,
       document.getElementById('workflow-steps')!,
       {
-        onLoadDemo: () => this.loadDemo(),
+        onLoadSample: () => this.loadSample(),
         onLoadFile: (file) => void this.loadFile(file),
         onDetectSeams: () => this.detectSeams(),
         onSelectAllSeams: (selected) => {
@@ -93,7 +93,7 @@ export class WeldingDemoApp {
 
     this.bindViewportEvents();
     void this.checkBackend();
-    this.loadDemo();
+    this.loadSample();
   }
 
   private bindViewportEvents(): void {
@@ -122,8 +122,8 @@ export class WeldingDemoApp {
     this.refresh();
   }
 
-  private loadDemo(): void {
-    const model = this.modelLoader.loadDemoWorkpiece();
+  private loadSample(): void {
+    const model = this.modelLoader.loadSampleWorkpiece();
     this.modelLoader.setModel(model);
     this.state.modelLoaded = true;
     this.state.modelName = 'Демо-деталь (T-образная конструкция)';
@@ -171,7 +171,7 @@ export class WeldingDemoApp {
   private goToStep(step: WorkflowStep): void {
     this.state.step = step;
     const hints: Record<WorkflowStep, string> = {
-      model: 'Загрузите CAD или используйте демо-деталь. STEP через backend API.',
+      model: 'Загрузите CAD или используйте образец детали. STEP через backend API.',
       seams: 'Клик по линии шва — выбор. Цвет соответствует типу сварки',
       scan: 'ICP через backend (Open3D) или локальная симуляция',
       weld: 'Активный шов подсвечивается жёлтым, горелка движется по траектории',
@@ -288,7 +288,7 @@ export class WeldingDemoApp {
       return;
     }
     this.ros.publishTrajectory(this.lastMoveItPlan);
-    this.sidebar.setStatus('Траектория отправлена в ROS (/welding_demo/trajectory)');
+    this.sidebar.setStatus('Траектория отправлена в ROS (/welding/trajectory)');
   }
 
   private downloadPlan(): void {

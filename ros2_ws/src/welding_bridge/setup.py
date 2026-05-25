@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = "welding_demo_bridge"
+package_name = "welding_bridge"
 
 setup(
     name=package_name,
@@ -15,12 +15,12 @@ setup(
     zip_safe=True,
     maintainer="yunilax",
     maintainer_email="yunilax@gmail.com",
-    description="ROS2 bridge for welding demo web",
+    description="ROS2 bridge for welding web app",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
-            "weld_status_node = welding_demo_bridge.weld_status_node:main",
-            "trajectory_bridge_node = welding_demo_bridge.trajectory_bridge_node:main",
+            "weld_status_node = welding_bridge.weld_status_node:main",
+            "trajectory_bridge_node = welding_bridge.trajectory_bridge_node:main",
         ],
     },
 )

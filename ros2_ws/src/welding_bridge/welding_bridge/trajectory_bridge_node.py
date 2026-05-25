@@ -13,9 +13,9 @@ from visualization_msgs.msg import Marker, MarkerArray
 class TrajectoryBridgeNode(Node):
     def __init__(self):
         super().__init__("trajectory_bridge_node")
-        self._marker_pub = self.create_publisher(MarkerArray, "/welding_demo/markers", 10)
-        self.create_subscription(String, "/welding_demo/trajectory", self._on_trajectory, 10)
-        self.get_logger().info("Ready on /welding_demo/trajectory")
+        self._marker_pub = self.create_publisher(MarkerArray, "/welding/markers", 10)
+        self.create_subscription(String, "/welding/trajectory", self._on_trajectory, 10)
+        self.get_logger().info("Ready on /welding/trajectory")
 
     def _on_trajectory(self, msg: String):
         try:
