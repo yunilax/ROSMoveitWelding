@@ -36,6 +36,7 @@ class MoveItExportRequest(BaseModel):
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok", "service": "welding_backend"}
 

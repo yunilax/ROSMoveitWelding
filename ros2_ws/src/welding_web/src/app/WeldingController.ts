@@ -3,23 +3,31 @@ import type { SceneManager } from './SceneManager';
 import type { SeamManager } from './SeamManager';
 import type { WeldSeam } from '../types';
 
+/**
+ * Упрощённая визуализация сварки на текущем этапе: вдоль активного шва
+ * движется небольшой светящийся маркер. Без горелки и нормалей — точность
+ * ориентации добавим позже, когда будут уверенные нормали швов.
+ */
 export class WeldingController {
   active = false;
   paused = false;
   currentIndex = 0;
+
+  /** Скорость прохода маркера вдоль шва (ед. сцены / сек). */
+  private travelSpeed = 0.04;
+
   private rafId = 0;
   private lastTime = 0;
-  private torch: THREE.Mesh | null = null;
-  private arcLight: THREE.PointLight | null = null;
-  private sparkGroup = new THREE.Group();
+
+  private marker: THREE.Mesh | null = null;
+  private markerHalo: THREE.Mesh | null = null;
+  private markerLight: THREE.PointLight | null = null;
 
   constructor(
     private sceneManager: SceneManager,
     private seamManager: SeamManager,
     private onUpdate: () => void,
-  ) {
-    this.sceneManager.weldEffectGroup.add(this.sparkGroup);
-  }
+  ) {}
 
   get selectedSeams(): WeldSeam[] {
     return this.seamManager.getSelectedSeams();
@@ -59,7 +67,7 @@ export class WeldingController {
     });
 
     this.activateCurrentSeam();
-    this.setupTorch();
+    this.setupMarker();
     this.lastTime = performance.now();
     this.loop();
     this.onUpdate();
@@ -80,7 +88,7 @@ export class WeldingController {
     this.active = false;
     this.paused = false;
     cancelAnimationFrame(this.rafId);
-    this.cleanupEffects();
+    this.cleanupMarker();
     this.onUpdate();
   }
 
@@ -106,22 +114,42 @@ export class WeldingController {
     }
   }
 
-  private setupTorch(): void {
-    this.cleanupEffects();
-    this.torch = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.015, 0.12, 12),
-      new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.25 }),
+  private setupMarker(): void {
+    this.cleanupMarker();
+
+    this.marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.012, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffd24a }),
     );
-    this.arcLight = new THREE.PointLight(0xffaa44, 2.5, 0.4);
-    this.sceneManager.weldEffectGroup.add(this.torch, this.arcLight);
+    this.markerHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xffb020,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
+    );
+    this.markerLight = new THREE.PointLight(0xffc070, 0.6, 0.25, 2);
+
+    this.sceneManager.weldEffectGroup.add(this.marker, this.markerHalo, this.markerLight);
   }
 
-  private cleanupEffects(): void {
-    if (this.torch) this.sceneManager.weldEffectGroup.remove(this.torch);
-    if (this.arcLight) this.sceneManager.weldEffectGroup.remove(this.arcLight);
-    this.sceneManager.clearGroup(this.sparkGroup);
-    this.torch = null;
-    this.arcLight = null;
+  private cleanupMarker(): void {
+    if (this.marker) {
+      this.sceneManager.weldEffectGroup.remove(this.marker);
+      this.marker.geometry.dispose();
+      (this.marker.material as THREE.Material).dispose();
+    }
+    if (this.markerHalo) {
+      this.sceneManager.weldEffectGroup.remove(this.markerHalo);
+      this.markerHalo.geometry.dispose();
+      (this.markerHalo.material as THREE.Material).dispose();
+    }
+    if (this.markerLight) this.sceneManager.weldEffectGroup.remove(this.markerLight);
+    this.marker = null;
+    this.markerHalo = null;
+    this.markerLight = null;
   }
 
   private loop = (): void => {
@@ -138,11 +166,10 @@ export class WeldingController {
       return;
     }
 
-    const speed = 0.18 / Math.max(seam.length, 0.1);
-    seam.progress = Math.min(1, seam.progress + dt * speed);
+    const dProgress = (this.travelSpeed * dt) / Math.max(seam.length, 1e-3);
+    seam.progress = Math.min(1, seam.progress + dProgress);
     this.seamManager.updateSeamProgress(seam);
-    this.updateTorchPosition(seam);
-    this.spawnSparks(seam);
+    this.updateMarker(seam);
 
     if (seam.progress >= 1) {
       seam.progress = 1;
@@ -160,39 +187,49 @@ export class WeldingController {
     this.onUpdate();
   };
 
-  private updateTorchPosition(seam: WeldSeam): void {
-    if (!this.torch || !this.arcLight) return;
-    const start = new THREE.Vector3(...seam.start);
-    const end = new THREE.Vector3(...seam.end);
-    const pos = start.lerp(end, seam.progress);
-    pos.y += 0.03;
-    this.torch.position.copy(pos);
-    this.torch.rotation.x = Math.PI / 2;
-    this.arcLight.position.copy(pos);
-    this.arcLight.intensity = 1.5 + Math.random() * 1.5;
-  }
+  private updateMarker(seam: WeldSeam): void {
+    if (!this.marker || !this.markerHalo || !this.markerLight) return;
+    const point = this.sceneManager.applyToWorldPoint(sampleSeamPoint(seam, seam.progress));
+    this.marker.position.copy(point);
+    this.markerHalo.position.copy(point);
+    this.markerLight.position.copy(point);
 
-  private spawnSparks(seam: WeldSeam): void {
-    if (Math.random() > 0.35) return;
-    const start = new THREE.Vector3(...seam.start);
-    const end = new THREE.Vector3(...seam.end);
-    const pos = start.lerp(end, seam.progress);
-    const spark = new THREE.Mesh(
-      new THREE.SphereGeometry(0.008, 6, 6),
-      new THREE.MeshBasicMaterial({ color: 0xfbbf24 }),
-    );
-    spark.position.copy(pos);
-    this.sparkGroup.add(spark);
-    setTimeout(() => {
-      this.sparkGroup.remove(spark);
-      spark.geometry.dispose();
-      (spark.material as THREE.Material).dispose();
-    }, 120);
+    const pulse = 0.85 + Math.random() * 0.3;
+    this.markerLight.intensity = 0.5 * pulse;
+    (this.markerHalo.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.random() * 0.15;
   }
 
   private finishAll(): void {
     this.active = false;
-    this.cleanupEffects();
+    this.cleanupMarker();
     this.onUpdate();
   }
+}
+
+/** Точка на полилинии шва по нормированной длине [0,1]. */
+function sampleSeamPoint(seam: WeldSeam, progress: number): THREE.Vector3 {
+  const pts = seam.points && seam.points.length >= 2 ? seam.points : [seam.start, seam.end];
+  const segLens: number[] = [];
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i][0] - pts[i - 1][0];
+    const dy = pts[i][1] - pts[i - 1][1];
+    const dz = pts[i][2] - pts[i - 1][2];
+    const l = Math.hypot(dx, dy, dz);
+    segLens.push(l);
+    total += l;
+  }
+  if (total < 1e-9) return new THREE.Vector3(...pts[0]);
+
+  let target = Math.max(0, Math.min(1, progress)) * total;
+  for (let i = 0; i < segLens.length; i++) {
+    if (target <= segLens[i] || i === segLens.length - 1) {
+      const t = segLens[i] > 0 ? Math.min(1, target / segLens[i]) : 0;
+      const a = new THREE.Vector3(...pts[i]);
+      const b = new THREE.Vector3(...pts[i + 1]);
+      return a.lerp(b, t);
+    }
+    target -= segLens[i];
+  }
+  return new THREE.Vector3(...pts[pts.length - 1]);
 }

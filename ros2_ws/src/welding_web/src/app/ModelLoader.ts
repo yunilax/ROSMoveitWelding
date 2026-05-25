@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -34,7 +34,7 @@ export class ModelLoader {
       new THREE.BoxGeometry(0.08, 0.7, 0.9),
       CAD_MATERIAL.clone(),
     );
-    vertical.position.set(-0.76, 0.39, 0);
+    vertical.position.set(-0.76, 0.43, 0); // низ на верхней грани основания (y=0.08)
     vertical.castShadow = true;
 
     const flange = new THREE.Mesh(
@@ -91,7 +91,15 @@ export class ModelLoader {
   }
 
   setModel(group: THREE.Group): void {
-    this.sceneManager.clearGroup(this.sceneManager.modelGroup);
+    const { modelGroup, seamGroup } = this.sceneManager;
+    for (const child of [...modelGroup.children]) {
+      if (child === seamGroup) continue;
+      modelGroup.remove(child);
+      this.sceneManager.disposeObject(child);
+    }
+    if (seamGroup.parent !== modelGroup) {
+      modelGroup.add(seamGroup);
+    }
     group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
@@ -107,16 +115,25 @@ export class ModelLoader {
 
   getModelMeshes(): THREE.Mesh[] {
     const meshes: THREE.Mesh[] = [];
-    this.sceneManager.modelGroup.traverse((child) => {
-      if (child instanceof THREE.Mesh) meshes.push(child);
-    });
+    const { modelGroup, seamGroup } = this.sceneManager;
+    for (const child of modelGroup.children) {
+      if (child === seamGroup) continue;
+      child.traverse((node) => {
+        if (node instanceof THREE.Mesh) meshes.push(node);
+      });
+    }
     return meshes;
   }
 
   getModelBounds(): THREE.Box3 {
-    return new THREE.Box3().setFromObject(this.sceneManager.modelGroup);
+    const box = new THREE.Box3();
+    const { modelGroup, seamGroup } = this.sceneManager;
+    for (const child of modelGroup.children) {
+      if (child === seamGroup) continue;
+      box.expandByObject(child);
+    }
+    return box;
   }
-
   sampleSurfacePoints(count = 8000): number[][] {
     const meshes = this.getModelMeshes();
     const points: THREE.Vector3[] = [];

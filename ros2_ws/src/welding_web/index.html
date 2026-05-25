@@ -23,6 +23,34 @@
 
       <main class="viewport">
         <canvas id="canvas"></canvas>
+        <div class="align-guide hidden" id="align-guide">
+          <div class="align-guide-head">
+            <span class="align-guide-title">CAD ↔ реальная деталь</span>
+            <span class="align-badge" id="align-badge">—</span>
+          </div>
+          <div class="align-steps" id="align-steps">
+            <div class="align-step" data-step="cad"><span class="step-n">1</span>CAD-модель</div>
+            <div class="align-step" data-step="scan"><span class="step-n">2</span>Скан (факт)</div>
+            <div class="align-step" data-step="icp"><span class="step-n">3</span>ICP → швы</div>
+          </div>
+          <div class="align-guide-body" id="align-guide-body"></div>
+          <div class="align-legend">
+            <span><i class="dot dot-cad"></i>CAD / швы (теория)</span>
+            <span><i class="dot dot-scan"></i>Облако скана (факт)</span>
+            <span><i class="dot dot-axis"></i>Оси X/Y/Z · плоскости XY, XZ</span>
+          </div>
+        </div>
+        <div class="viewport-hud">
+          <div class="seam-hud-stats hidden" id="seam-hud-stats"></div>
+          <div class="seam-legend hidden" id="seam-legend">
+            <div class="legend-title">Источник шва</div>
+            <div class="legend-row"><span class="legend-dot src-contact"></span>Контакт деталей</div>
+            <div class="legend-row"><span class="legend-dot src-concave"></span>Вогнутое ребро</div>
+            <div class="legend-row"><span class="legend-dot src-manual"></span>Ручной</div>
+            <div class="legend-title" style="margin-top:0.4rem">Навигация</div>
+            <div class="legend-row muted">‹ › или ← → — между швами</div>
+          </div>
+        </div>
         <div class="viewport-overlay">
           <div class="status-chip" id="status-chip">Готов к работе</div>
           <div class="hint" id="viewport-hint">Загрузите CAD-модель или используйте образец детали</div>
