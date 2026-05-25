@@ -11,3 +11,8 @@ __pycache__/
 # IDE
 .idea/
 .vscode/
+
+# Node / frontend
+node_modules/
+dist/
+*.local

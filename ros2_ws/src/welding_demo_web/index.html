@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welding Demo — CAD & Point Cloud</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-icon">⚡</span>
+          <div>
+            <h1>Welding Demo</h1>
+            <p>CAD-модель · швы · сканирование · управление процессом</p>
+          </div>
+        </div>
+        <div class="workflow-steps" id="workflow-steps"></div>
+      </header>
+
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="viewport">
+        <canvas id="canvas"></canvas>
+        <div class="viewport-overlay">
+          <div class="status-chip" id="status-chip">Готов к работе</div>
+          <div class="hint" id="viewport-hint">Загрузите CAD-модель или используйте демо-деталь</div>
+        </div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
