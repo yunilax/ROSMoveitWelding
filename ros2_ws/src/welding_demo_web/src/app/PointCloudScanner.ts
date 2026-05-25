@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { SceneManager } from './SceneManager';
 import type { ModelLoader } from './ModelLoader';
 import type { SeamManager } from './SeamManager';
+import type { BackendClient, IcpResult } from './BackendClient';
 import type { ScanResult, SensorMode } from '../types';
 
 const SENSOR_CONFIG: Record<SensorMode, { count: number; noise: number; color: number; size: number }> = {
@@ -18,6 +19,7 @@ export class PointCloudScanner {
     private sceneManager: SceneManager,
     private modelLoader: ModelLoader,
     private seamManager: SeamManager,
+    private backend: BackendClient | null = null,
   ) {}
 
   async scan(sensor: SensorMode): Promise<ScanResult> {
@@ -53,9 +55,13 @@ export class PointCloudScanner {
     return result;
   }
 
-  async alignScans(): Promise<{ error: number; matchedSeams: string[] }> {
+  async alignScans(useBackend = false): Promise<{ error: number; matchedSeams: string[]; icp?: IcpResult }> {
     if (this.scanResults.length === 0) {
       throw new Error('Сначала выполните сканирование.');
+    }
+
+    if (useBackend && this.backend) {
+      return this.alignViaBackend();
     }
 
     const bounds = this.modelLoader.getModelBounds();
@@ -76,8 +82,38 @@ export class PointCloudScanner {
       scan.matchedSeams = matchedSeams;
     });
 
-    this.applyAlignmentToClouds();
+    this.applyAlignmentToClouds(true);
     return { error, matchedSeams };
+  }
+
+  private async alignViaBackend(): Promise<{ error: number; matchedSeams: string[]; icp: IcpResult }> {
+    const source = this.collectScanPoints();
+    const target = this.modelLoader.sampleSurfacePoints(8000);
+    const icp = await this.backend!.alignIcp(source, target);
+
+    const matrix = new THREE.Matrix4().fromArray(icp.matrix.flat());
+    this.alignmentTransform.copy(matrix);
+
+    const error = icp.rmse * 1000;
+    const matchedSeams = this.matchSeamsToCloud(error / 100);
+
+    this.scanResults.forEach((scan) => {
+      scan.alignmentError = error;
+      scan.matchedSeams = matchedSeams;
+    });
+
+    this.applyAlignmentToClouds(false);
+    return { error, matchedSeams, icp };
+  }
+
+  private collectScanPoints(): number[][] {
+    const out: number[][] = [];
+    for (const scan of this.scanResults) {
+      for (let i = 0; i < scan.points.length; i += 3) {
+        out.push([scan.points[i], scan.points[i + 1], scan.points[i + 2]]);
+      }
+    }
+    return out;
   }
 
   clearClouds(): void {
@@ -177,9 +213,11 @@ export class PointCloudScanner {
       .map((s) => s.id);
   }
 
-  private applyAlignmentToClouds(): void {
+  private applyAlignmentToClouds(invert = true): void {
     this.cloudMeshes.forEach((cloud) => {
-      cloud.applyMatrix4(this.alignmentTransform.clone().invert());
+      const matrix = this.alignmentTransform.clone();
+      if (invert) matrix.invert();
+      cloud.applyMatrix4(matrix);
     });
   }
 }

@@ -9,12 +9,14 @@ import {
 import type { SeamManager } from './SeamManager';
 import type { PointCloudScanner } from './PointCloudScanner';
 import type { WeldingController } from './WeldingController';
+import type { RosBridgeClient } from './RosBridgeClient';
 
 const STEPS: { id: WorkflowStep; label: string }[] = [
   { id: 'model', label: '1. CAD' },
   { id: 'seams', label: '2. Швы' },
   { id: 'scan', label: '3. Скан' },
   { id: 'weld', label: '4. Сварка' },
+  { id: 'integrate', label: '5. ROS' },
 ];
 
 export interface SidebarCallbacks {
@@ -32,6 +34,13 @@ export interface SidebarCallbacks {
   onPauseWelding: () => void;
   onStopWelding: () => void;
   onResetWelding: () => void;
+  onConnectRos: (url: string) => void;
+  onDisconnectRos: () => void;
+  onExportMoveIt: () => void;
+  onSendTrajectoryRos: () => void;
+  onDownloadPlan: () => void;
+  onRefreshBackend: () => void;
+  onToggleBackendIcp: (enabled: boolean) => void;
 }
 
 export class Sidebar {
@@ -50,6 +59,7 @@ export class Sidebar {
     seamManager: SeamManager,
     scanner: PointCloudScanner,
     welding: WeldingController,
+    ros: RosBridgeClient,
   ): void {
     this.renderSteps(state);
     this.setActivePanel(state.step);
@@ -57,6 +67,7 @@ export class Sidebar {
     this.updateSeamsPanel(seamManager);
     this.updateScanPanel(scanner, seamManager, state);
     this.updateWeldPanel(welding, state);
+    this.updateIntegratePanel(state, ros);
   }
 
   setStatus(text: string): void {
@@ -73,15 +84,20 @@ export class Sidebar {
     this.root.innerHTML = `
       <div class="panel active" data-panel="model">
         <h2>CAD-модель</h2>
-        <p class="subtitle">Загрузите STL, OBJ или GLTF/GLB либо используйте демо-деталь для сварки.</p>
+        <p class="subtitle">Загрузите STL, OBJ, GLTF/GLB, STEP (через backend) или используйте демо-деталь.</p>
         <div class="section">
           <h3>Загрузка</h3>
           <label class="file-label" for="cad-file">
             Перетащите файл или нажмите для выбора<br/>
-            <small>STL · OBJ · GLTF · GLB</small>
+            <small>STL · OBJ · GLTF · GLB · STEP</small>
           </label>
-          <input class="file-input" id="cad-file" type="file" accept=".stl,.obj,.gltf,.glb" />
+          <input class="file-input" id="cad-file" type="file" accept=".stl,.obj,.gltf,.glb,.step,.stp" />
           <button class="btn primary" id="load-demo" style="margin-top:0.5rem">Загрузить демо-деталь</button>
+        </div>
+        <div class="section">
+          <h3>Backend API</h3>
+          <div id="backend-info" class="info-box">Проверка...</div>
+          <button class="btn" id="refresh-backend" style="margin-top:0.5rem">Обновить статус</button>
         </div>
         <div class="section">
           <h3>Текущая модель</h3>
@@ -123,6 +139,10 @@ export class Sidebar {
           <button class="btn primary" id="run-scan" style="margin-top:0.5rem">Сканировать</button>
           <button class="btn" id="align-scans" style="margin-top:0.5rem">Сопоставить с CAD</button>
           <button class="btn" id="clear-clouds" style="margin-top:0.5rem">Очистить облака</button>
+          <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;font-size:0.8rem;color:var(--muted)">
+            <input type="checkbox" id="use-backend-icp" checked />
+            ICP через backend (Open3D)
+          </label>
         </div>
         <div class="section">
           <h3>Результаты</h3>
@@ -164,7 +184,33 @@ export class Sidebar {
           <h3>Очередь швов</h3>
           <div id="weld-queue" class="seam-list"></div>
         </div>
-        <button class="btn" id="back-to-scan">← Сканирование</button>
+        <div class="btn-row">
+          <button class="btn" id="back-to-scan">← Сканирование</button>
+          <button class="btn primary" id="goto-integrate">Далее: ROS / MoveIt →</button>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="integrate">
+        <h2>ROS / MoveIt</h2>
+        <p class="subtitle">rosbridge, экспорт траекторий швов и отправка в RViz.</p>
+        <div class="section">
+          <h3>rosbridge</h3>
+          <input class="seam-select" id="ros-url" value="ws://localhost:9090" />
+          <div class="btn-row" style="margin-top:0.5rem">
+            <button class="btn success" id="connect-ros">Подключить</button>
+            <button class="btn" id="disconnect-ros">Отключить</button>
+          </div>
+          <div id="ros-info" class="info-box" style="margin-top:0.5rem">Не подключено</div>
+        </div>
+        <div class="section">
+          <h3>MoveIt export</h3>
+          <button class="btn primary" id="export-moveit">Экспорт траекторий</button>
+          <div class="btn-row" style="margin-top:0.5rem">
+            <button class="btn" id="download-plan">Скачать JSON</button>
+            <button class="btn" id="send-trajectory-ros">Отправить в ROS</button>
+          </div>
+        </div>
+        <button class="btn" id="back-to-weld">← Сварка</button>
       </div>
     `;
 
@@ -207,6 +253,18 @@ export class Sidebar {
     this.root.querySelector('#pause-weld')!.addEventListener('click', () => this.callbacks.onPauseWelding());
     this.root.querySelector('#stop-weld')!.addEventListener('click', () => this.callbacks.onStopWelding());
     this.root.querySelector('#reset-weld')!.addEventListener('click', () => this.callbacks.onResetWelding());
+    this.root.querySelector('#refresh-backend')!.addEventListener('click', () => this.callbacks.onRefreshBackend());
+    this.root.querySelector('#use-backend-icp')!.addEventListener('change', (e) => {
+      this.callbacks.onToggleBackendIcp((e.target as HTMLInputElement).checked);
+    });
+    this.root.querySelector('#connect-ros')!.addEventListener('click', () => {
+      const url = (this.root.querySelector('#ros-url') as HTMLInputElement).value;
+      this.callbacks.onConnectRos(url);
+    });
+    this.root.querySelector('#disconnect-ros')!.addEventListener('click', () => this.callbacks.onDisconnectRos());
+    this.root.querySelector('#export-moveit')!.addEventListener('click', () => this.callbacks.onExportMoveIt());
+    this.root.querySelector('#download-plan')!.addEventListener('click', () => this.callbacks.onDownloadPlan());
+    this.root.querySelector('#send-trajectory-ros')!.addEventListener('click', () => this.callbacks.onSendTrajectoryRos());
 
     this.root.querySelector('#sensor-far')!.addEventListener('click', () => this.setSensor('far'));
     this.root.querySelector('#sensor-near')!.addEventListener('click', () => this.setSensor('near'));
@@ -214,9 +272,11 @@ export class Sidebar {
     this.root.querySelector('#goto-seams')!.addEventListener('click', () => this.callbacks.onGoToStep('seams'));
     this.root.querySelector('#goto-scan')!.addEventListener('click', () => this.callbacks.onGoToStep('scan'));
     this.root.querySelector('#goto-weld')!.addEventListener('click', () => this.callbacks.onGoToStep('weld'));
+    this.root.querySelector('#goto-integrate')!.addEventListener('click', () => this.callbacks.onGoToStep('integrate'));
     this.root.querySelector('#back-to-model')!.addEventListener('click', () => this.callbacks.onGoToStep('model'));
     this.root.querySelector('#back-to-seams')!.addEventListener('click', () => this.callbacks.onGoToStep('seams'));
     this.root.querySelector('#back-to-scan')!.addEventListener('click', () => this.callbacks.onGoToStep('scan'));
+    this.root.querySelector('#back-to-weld')!.addEventListener('click', () => this.callbacks.onGoToStep('weld'));
   }
 
   private setSensor(mode: SensorMode): void {
@@ -246,6 +306,12 @@ export class Sidebar {
       ? `Загружена: ${state.modelName}`
       : 'Модель не загружена';
     (this.root.querySelector('#goto-seams') as HTMLButtonElement).disabled = !state.modelLoaded;
+
+    const backendInfo = this.root.querySelector('#backend-info')!;
+    backendInfo.className = state.backendOnline ? 'info-box success' : 'info-box';
+    backendInfo.textContent = state.backendOnline
+      ? 'Backend online — STEP, ICP (Open3D), MoveIt export'
+      : 'Backend offline — запустите welding_demo_backend на :8000';
   }
 
   private updateSeamsPanel(seamManager: SeamManager): void {
@@ -308,6 +374,9 @@ export class Sidebar {
     }
     (this.root.querySelector('#goto-weld') as HTMLButtonElement).disabled =
       !state.alignmentDone || seamManager.getSelectedSeams().length === 0;
+
+    const icpCheckbox = this.root.querySelector('#use-backend-icp') as HTMLInputElement | null;
+    if (icpCheckbox) icpCheckbox.checked = state.useBackendIcp;
   }
 
   private updateWeldPanel(welding: WeldingController, state: AppState): void {
@@ -332,5 +401,13 @@ export class Sidebar {
             <span>${Math.round(seam.progress * 100)}%</span>
           </div>
         `).join('');
+  }
+
+  private updateIntegratePanel(state: AppState, ros: RosBridgeClient): void {
+    const info = this.root.querySelector('#ros-info')!;
+    info.className = state.rosConnected ? 'info-box success' : 'info-box';
+    info.innerHTML = state.rosConnected
+      ? `Подключено: ${ros.state.url}<br/>Joint states: ${ros.state.lastJointUpdate}`
+      : 'Не подключено. Запустите: ros2 launch welding_demo_bridge web_bridge.launch.py';
   }
 }

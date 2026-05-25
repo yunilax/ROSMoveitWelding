@@ -1,55 +1,50 @@
 # Welding Demo Web
 
-Браузерное демо-приложение на **Three.js** для цикла сварочного производства:
+Браузерное демо-приложение на **Three.js** для цикла сварочного производства.
 
-1. **CAD** — загрузка и просмотр моделей (STL, OBJ, GLTF/GLB) или встроенная демо-деталь
-2. **Швы** — автоматический поиск рёбер и ручной выбор швов в 3D-сцене
-3. **Типы швов** — назначение fillet, butt, corner, lap, plug с цветовой кодировкой
-4. **Сканирование** — симуляция дальнего и ближнего датчиков, облака точек, сопоставление с CAD
-5. **Сварка** — управление процессом, текущий шов, прогресс, очередь
+## Функции
 
-## Запуск
+1. **CAD** — STL, OBJ, GLTF/GLB; STEP через backend API
+2. **Швы** — авто-поиск рёбер, ручной выбор, типы швов
+3. **Сканирование** — дальний/ближний датчик, ICP (Open3D backend или локально)
+4. **Сварка** — управление процессом, прогресс, анимация
+5. **ROS / MoveIt** — rosbridge, экспорт траекторий, RViz markers
+
+## Быстрый старт
 
 ```bash
-cd welding_demo_web
+# Backend (терминал 1)
+cd ros2_ws/src/welding_demo_backend
+python -m venv .venv && .venv\Scripts\activate
+pip install -r requirements.txt
+python run_server.py
+
+# Web UI (терминал 2)
+cd ros2_ws/src/welding_demo_web
 npm install
 npm run dev
 ```
 
-Откроется браузер на `http://localhost:5173`.
-
-## Сборка
+## Полный стек (Linux/WSL + ROS2)
 
 ```bash
-npm run build
-npm run preview
+ros2 launch welding_robot_moveit_config demo.launch.py
+ros2 launch welding_demo_bridge web_bridge.launch.py
+python ros2_ws/src/welding_demo_backend/run_server.py
+cd ros2_ws/src/welding_demo_web && npm run dev
 ```
 
-## Рабочий процесс
+## Связанные пакеты
 
-| Шаг | Действие |
-|-----|----------|
-| CAD | Загрузите файл или нажмите «Загрузить демо-деталь» |
-| Швы | «Найти швы автоматически», клик по линии для выбора, задайте тип |
-| Скан | Выберите дальний/ближний датчик → «Сканировать» → «Сопоставить с CAD» |
-| Сварка | «Старт» — анимация горелки, прогресс по каждому шву |
+| Пакет | Назначение |
+|-------|------------|
+| `welding_demo_web` | Браузерный UI (Three.js) |
+| `welding_demo_backend` | FastAPI: STEP, ICP, MoveIt JSON |
+| `welding_demo_bridge` | rosbridge + weld status + RViz markers |
+| `welding_robot_*` | URDF, MoveIt, Gazebo |
 
-## Ограничения демо
+## ROS topics
 
-- Сканирование и ICP — **симуляция** для демонстрации UX, не промышленная точность
-- Авто-поиск швов работает по **острым рёбрам** меша (angle threshold ~35°)
-- Для production: интеграция с ROS2 (PointCloud2), Open3D/PCL, STEP-импорт через backend
-
-## Связь с ROS2-проектом
-
-Пакет `welding_robot_*` в этом workspace описывает 6-DOF манипулятор для MoveIt/Gazebo.
-Данное веб-демо может быть расширено через **rosbridge** или REST API для:
-
-- публикации траекторий швов в MoveIt
-- получения реальных облаков точек с LiDAR/структурированного света
-- отображения состояния робота в реальном времени
-
-## Стек
-
-- Vite 6 + TypeScript
-- Three.js (OrbitControls, STLLoader, OBJLoader, GLTFLoader)
+- `/welding_demo/status_in` — статус сварки (JSON из web)
+- `/welding_demo/trajectory` — MoveIt plan (JSON)
+- `/welding_demo/markers` — MarkerArray для RViz

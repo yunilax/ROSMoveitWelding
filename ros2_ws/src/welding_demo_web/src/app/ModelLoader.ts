@@ -55,8 +55,19 @@ export class ModelLoader {
     return group;
   }
 
-  async loadFile(file: File): Promise<THREE.Group> {
+  async loadFile(file: File, backend?: { convertStep: (f: File) => Promise<Blob> }): Promise<THREE.Group> {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+
+    if ((ext === 'step' || ext === 'stp') && backend) {
+      const stlBlob = await backend.convertStep(file);
+      const url = URL.createObjectURL(stlBlob);
+      try {
+        return await this.loadStl(url);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
     const url = URL.createObjectURL(file);
 
     try {
@@ -68,8 +79,11 @@ export class ModelLoader {
         case 'gltf':
         case 'glb':
           return this.loadGltf(url);
+        case 'step':
+        case 'stp':
+          throw new Error('STEP требует backend API. Запустите welding_demo_backend на :8000');
         default:
-          throw new Error(`Формат .${ext} не поддерживается. Используйте STL, OBJ или GLTF/GLB.`);
+          throw new Error(`Формат .${ext} не поддерживается. Используйте STL, OBJ, GLTF/GLB или STEP (с backend).`);
       }
     } finally {
       URL.revokeObjectURL(url);
@@ -101,6 +115,38 @@ export class ModelLoader {
 
   getModelBounds(): THREE.Box3 {
     return new THREE.Box3().setFromObject(this.sceneManager.modelGroup);
+  }
+
+  sampleSurfacePoints(count = 8000): number[][] {
+    const meshes = this.getModelMeshes();
+    const points: THREE.Vector3[] = [];
+
+    for (const mesh of meshes) {
+      const geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+      const pos = geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += 3) {
+        const a = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+        const b = new THREE.Vector3().fromBufferAttribute(pos, i + 1).applyMatrix4(mesh.matrixWorld);
+        const c = new THREE.Vector3().fromBufferAttribute(pos, i + 2).applyMatrix4(mesh.matrixWorld);
+        const r1 = Math.random();
+        const r2 = Math.random();
+        const sqrtR1 = Math.sqrt(r1);
+        points.push(new THREE.Vector3(
+          (1 - sqrtR1) * a.x + sqrtR1 * (1 - r2) * b.x + sqrtR1 * r2 * c.x,
+          (1 - sqrtR1) * a.y + sqrtR1 * (1 - r2) * b.y + sqrtR1 * r2 * c.y,
+          (1 - sqrtR1) * a.z + sqrtR1 * (1 - r2) * b.z + sqrtR1 * r2 * c.z,
+        ));
+      }
+    }
+
+    if (points.length === 0) return [];
+    const step = Math.max(1, Math.floor(points.length / count));
+    const sampled: number[][] = [];
+    for (let i = 0; i < points.length && sampled.length < count; i += step) {
+      const p = points[i];
+      sampled.push([p.x, p.y, p.z]);
+    }
+    return sampled;
   }
 
   private loadStl(url: string): Promise<THREE.Group> {

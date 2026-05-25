@@ -1,4 +1,4 @@
-export type WorkflowStep = 'model' | 'seams' | 'scan' | 'weld';
+export type WorkflowStep = 'model' | 'seams' | 'scan' | 'weld' | 'integrate';
 
 export type WeldType =
   | 'fillet'
@@ -62,4 +62,7 @@ export interface AppState {
   alignmentDone: boolean;
   weldingActive: boolean;
   currentSeamIndex: number;
+  backendOnline: boolean;
+  rosConnected: boolean;
+  useBackendIcp: boolean;
 }
