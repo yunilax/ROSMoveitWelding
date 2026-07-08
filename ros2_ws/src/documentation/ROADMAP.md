@@ -258,6 +258,8 @@ EMERGENCY
 
 ## Связанные документы
 
+- [TRACEABILITY.md](TRACEABILITY.md) — матрица ТЗ → код → статус
+- [TEST_PLAN.md](TEST_PLAN.md) — программа и методика испытаний
 - [ТЗ на систему](robot_welding_tz_final%20(5).docx)
 - [QUICKSTART.md](../../QUICKSTART.md) — текущий рабочий цикл
 - [welding_web/README.md](../welding_web/README.md)
