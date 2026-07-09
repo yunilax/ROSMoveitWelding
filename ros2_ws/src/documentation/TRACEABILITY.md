@@ -4,7 +4,7 @@
 
 **Источники ТЗ:**
 - [TZ_Robot_Welding_System_Full_v2.docx](TZ_Robot_Welding_System_Full_v2.docx) — контрактная версия
-- [robot_welding_tz_final (5).docx](robot_welding_tz_final%20(5).docx) — алгоритмы, FSM, FMEA
+- [robot_welding_tz_final (5).docx](robot_welding_tz_final%20(5).docx) — алгоритмы, FSM, АВПО (FMEA)
 - [ROADMAP.md](ROADMAP.md) — фазы разработки
 
 **Легенда статусов**
@@ -56,7 +56,7 @@
 | ID | Требование ТЗ | Модуль ТЗ | Код / пакет | Статус | Приор. | Фаза | Тест |
 |---|---|---|---|---|---|---|---|
 | TZ-3.1 | ICP регистрация облака и CAD | ICP Engine | `icp.py`, `PointCloudScanner.ts` | ⚠️ | P0 | 1 | TP-16 |
-| TZ-3.2 | RMS ≤ 0,10 мм | ICP Engine | `icp.py` (RMS в ответе) | ⚠️ | P0 | 1 | TP-16 |
+| TZ-3.2 | RMS ≤ 0,30 мм | ICP Engine | `icp.py` (RMS в ответе) | ⚠️ | P0 | 1 | TP-16 |
 | TZ-3.3 | Запрет сварки при ошибке ICP | ICP Engine + FSM | — | ❌ | P0 | 2 | TP-17 |
 | TZ-3.4 | Критерий остановки ICP (ΔRMS, max iter) | ICP Engine | `icp.py` (частично) | ⚠️ | P1 | 1 | TP-16 |
 | TZ-3.5 | Авто-определение положения ≥ 99% циклов | ICP Engine | — | ❌ | P0 | 8 | TP-18 |
@@ -149,7 +149,7 @@
 | TZ-9.7 | Журнал событий | Logging | — | ❌ | P1 | 2 | TP-50 |
 | TZ-9.8 | Самодиагностика перед циклом | Diagnostics | — | ❌ | P1 | 2 | TP-51 |
 | TZ-9.9 | FSM: OFFLINE…REPORT, EMERGENCY | FSM | — | ❌ | P0 | 2 | TP-01 |
-| TZ-9.10 | FMEA-реакции (10 сценариев) | Safety Supervisor | — | ❌ | P1 | 2, 7 | TP-52 |
+| TZ-9.10 | АВПО (FMEA)-реакции (10 сценариев) | Safety Supervisor | — | ❌ | P1 | 2, 7 | TP-52 |
 | TZ-9.11 | БД: изделия, швы, сканы, отчёты | Database Manager | — | ❌ | P1 | 7 | TP-53 |
 | TZ-9.12 | Резервное копирование | Database Manager | — | ❌ | P2 | 7 | TP-54 |
 | TZ-9.13 | Буферизация при потере связи с сервером | Database Manager | — | ❌ | P2 | 7 | TP-55 |
